@@ -1,0 +1,55 @@
+==== ROUTER ====
+
+enable
+configure terminal
+
+hostname Router-Border
+enable secret Cisco12345!
+username adminlocal privilege 15 secret CiscoLocal123!
+ip domain-name redes.local
+
+line console 0
+ logging synchronous
+ exec-timeout 0 0
+ exit
+
+interface Ethernet0/1
+ description WAN_SALIDA_INTERNET
+ ip address dhcp
+ ip nat outside
+ no shutdown
+ exit
+
+interface Ethernet0/0
+ description LAN_WIN_SERVER
+ ip address 10.13.35.1 255.255.255.0
+ ip nat inside
+ no shutdown
+ exit
+
+access-list 1 permit 10.13.35.0 0.0.0.255
+ip nat inside source list 1 interface Ethernet0/1 overload
+
+crypto key generate rsa modulus 1024
+ip ssh version 2
+
+aaa new-model
+
+radius-server host 10.13.35.10 auth-port 1812 acct-port 1813 key cisco123
+
+aaa authentication login default group radius local
+aaa authorization exec default group radius local
+
+line vty 0 4
+ login authentication default
+ authorization exec default
+ transport input ssh
+ exit
+
+end
+write memory
+
+! Depuración activa para capturar logs en la prueba final
+debug aaa authentication
+debug aaa authorization
+debug radius
